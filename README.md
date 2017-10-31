@@ -2,7 +2,7 @@
 
 ### 简述
 
-这是个php加密类，它的加密过程和解密过程是和https://github.com/eixom/zoeeyguard一致的，这个类就是zoeeyguard扩展的php代码实现，目的是为了解决php不同版本之间的扩展兼容性问题。
+这是个php加密类，它的加密过程和解密过程是和 https://github.com/eixom/zoeeyguard 一致的，这个类就是zoeeyguard扩展的php代码实现，目的是为了解决php不同版本之间的扩展兼容性问题。
 
 ### 主要功能
 
