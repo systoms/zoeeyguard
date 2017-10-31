@@ -10,4 +10,14 @@
 
 ### 关键词
 
-php 加密 解密 zoeeyguard encode decode
+keywords: 
+[php](https://github.com/systoms/zoeeyguard) 
+[加密](https://github.com/systoms/zoeeyguard) 
+[解密](https://github.com/systoms/zoeeyguard) 
+[PHP加密](https://github.com/systoms/zoeeyguard)
+[PHP解密](https://github.com/systoms/zoeeyguard)
+[PHP源码加密](https://github.com/systoms/zoeeyguard)
+[PHP代码保护](https://github.com/systoms/zoeeyguard)
+[PHP encode](https://github.com/systoms/zoeeyguard)
+[PHP decode](https://github.com/systoms/zoeeyguard)
+[zoeeyguard](https://github.com/systoms/zoeeyguard)
