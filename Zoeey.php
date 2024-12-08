@@ -1,298 +1,235 @@
 <?php
 
-    /**
-     * @name   php加密解密类
-     * @author 岁月神偷
-     * @email  systom@sina.cn
-     * @date   2017-10-31
-     */
-    class Zoeey {
+class ZoeeyGuard {
+    // 私钥
+    private const PRIVATE_KEY = "28dsa7dsas12312389uy7aydh8h1h2i312";
+    
+    // 字符重排序数组
+    private const OBFUSCATED_ORDER = [
+        13, 6, 5, 7, 1, 15, 14, 20,
+        9, 16, 19, 4, 18, 10, 2, 8,
+        12, 3, 11, 0, 17
+    ];
 
-        const OBFUSCATED_ORDER = array(
-            13,  6,  5,  7,  1, 15, 14, 20
-        ,  9, 16, 19,  4, 18, 10,  2,  8
-        , 12,  3, 11,  0, 17
-        );
-        const ORDER_SIZE = 21;
+    // Base64字母表
+    private const OBFUSCATED_ALPHABET = [
+        's', '4', 'N', 'E', 'k', 'X', 'c', 'u',
+        'J', '2', 'U', 'o', 'O', 'w', 'K', 'v',
+        'h', 'H', 'C', '/', 'D', 'q', 'l', 'R',
+        'B', 'r', '5', 'Z', 'S', 'Q', '6', 'W',
+        '3', 'L', 'j', '8', '1', 'z', '0', 'G',
+        'n', 'e', 'y', 'b', 'I', 'd', 'i', 'P',
+        'A', '9', '7', '+', 'm', 'V', 'M', 'Y',
+        'F', 'g', 'f', 'p', 'a', 'T', 't', 'x'
+    ];
 
-        const OBFUSCATED_ALPHABET = array(
-            's', '4', 'N', 'E', 'k', 'X', 'c', 'u'
-        , 'J', '2', 'U', 'o', 'O', 'w', 'K', 'v'
-        , 'h', 'H', 'C', '/', 'D', 'q', 'l', 'R'
-        , 'B', 'r', '5', 'Z', 'S', 'Q', '6', 'W'
-        , '3', 'L', 'j', '8', '1', 'z', '0', 'G'
-        , 'n', 'e', 'y', 'b', 'I', 'd', 'i', 'P'
-        , 'A', '9', '7', '+', 'm', 'V', 'M', 'Y'
-        , 'F', 'g', 'f', 'p', 'a', 'T', 't', 'x'
-        );
-        const ALPHABET_SIZE = 64;
-        private $alphabet_bytes = array();
-        private function get_alphabet_bytes()
-        {
-            for ($i = 0; $i < static::ALPHABET_SIZE; $i++) {
-                $this->alphabet_bytes[static::OBFUSCATED_ALPHABET[$i]] = $i;
-            }
-        }
-        /**
-         * @name 解密密文
-         * @param String $ciphertext   密文
-         * @param String $key          秘钥
-         * @return string
-         */
-        public function decode($ciphertext,$key)
-        {
-            $key_len = strlen($key);
-            $this->get_alphabet_bytes();
-            //  计算密文长度
-            $eq_len = strlen($ciphertext);
-            $equal_count = 1;
-            $enc = $this->substr_n($ciphertext, strlen($ciphertext), 0,$eq_len - $equal_count);
-            $eq_len = strlen($ciphertext);
-            $enc_len = $eq_len;
-            $enc_idx=0;
-            $code_idx = 0;
-            $code_len = (($eq_len * 3) / 4) - $equal_count;
-            $code = str_pad("",$code_len," ");
-            $idx = 0;
-            while ($idx < $enc_len) {
-                if ($code_idx == $code_len) {
-                    break;
-                }
-                $pre = @ord($ciphertext[$enc_idx]) & 0xFF;
-                $pre = @$this->alphabet_bytes[chr($pre)];
-                $enc_idx++;
-                $suf = @ord($ciphertext[$enc_idx]) & 0xFF;
-                $suf = @$this->alphabet_bytes[chr($suf)];
-                $pos = $idx + 1;
-                if ($pos % 3 == 1) {
-                    $pos = 1;
-                } else if ($pos % 3 == 2) {
-                    $pos = 2;
-                } else {
-                    $pos = 3;
-                }
-                switch ($pos) {
-                    case 1:
-                        $ch = ((($pre << 2) & 0xFC) | (($suf >> 4) & 3));
-                        break;
-                    case 2:
-                        $ch = ((($pre << 4) & 0xF0) | (($suf >> 2) & 0xF));
-                        break;
-                    case 3:
-                        $ch = ((($pre << 6) & 0xC0) | ($suf & 0x3F));;
-                        break;
-                }
-                if($ch > 127)
-                {
-                    $ch = $ch - 256;
-                }
-                $code[$code_idx] = chr($ch);
-                $code_idx++;
-                if ($enc_idx == $enc_len) {
-                    break;
-                }
+    // 加密方法
+    public static function encode($code) {
+        $keyLen = strlen(self::PRIVATE_KEY);
+        $codeLen = strlen($code);
         
-                if (($idx + 1) % 3 == 0) {
-                    $enc_idx++;
-                }
-                $idx++;
-            }
-            $code_len = $idx;
-            $swaped_key = str_pad("",$key_len," ");
-            $source = str_pad("",$code_len," ");
-            $this->swap_by_order($key,$swaped_key,$key_len);
-            $key_idx = 0;
-            for ($i = 0; $i < $code_len; $i++, $key_idx++) {
-                if ($key_idx == $key_len) {
-                    $key_idx = 0;
-                }
-                $code[$i] = $code[$i] ^ $key[$key_idx];
-                $code[$i] = $code[$i] ^ $swaped_key[$key_idx];
-            }
-            $this->deswap_by_order($code,$source,$code_len);
-            return $source;
+        // 字符重排序
+        $swappedCode = self::swapByOrder($code);
+        $swappedKey = self::swapByOrder(self::PRIVATE_KEY);
+        
+        // XOR加密
+        $xCode = '';
+        for($i = 0; $i < $codeLen; $i++) {
+            $keyIdx = $i % $keyLen;
+            $xCode .= chr(
+                ord($swappedCode[$i]) ^ ord(self::PRIVATE_KEY[$keyIdx]) ^ 
+                ord($swappedKey[$keyIdx])
+            );
         }
-
-        /**
-         * @name  加密原文
-         * @param $code    需要加密的原文
-         * @param $key     秘钥
-         * @return string
-         */
-        public function encode($code,$key)
-        {
-            $code_len = strlen($code);
-            $key_len = strlen($key);
-            $swaped_key = array();
-            $this->swap_by_order($key, $swaped_key, $key_len);
-            // swap code
-            $swaped_code = array();
-            $this->swap_by_order($code, $swaped_code, $code_len);
-            $key_idx = 0;
-            $i = 0;
-            $x_code = $code;
-            for ($i = 0; $i < $code_len; $i++, $key_idx++) {
-                if ($key_idx == $key_len) {
-                    $key_idx = 0;
-                }
-                @$x_code[$i] = $swaped_code[$i] ^ $key[$key_idx];
-                $x_code[$i] = $x_code[$i]^ $swaped_key[$key_idx];
-            }
-            $idx = 0;
-            $j = 0;
-            $based_code_len = ($code_len + 3) * 4 / 3;
-            $base_code = str_pad("",$based_code_len," ");
-            $base_idx = 0;
-            while ($idx < $code_len) {
-                for ($i = 0; $i < 3; $i++) {
-                    $idx++;
-                    $chs[$i] = $x_code[$idx - 1];
-                    if ($idx == $code_len) {
-                        break;
-                    }
-                }
-                $i++;
-                if ($i > 0) {
-                    $base_code[$base_idx] = static::OBFUSCATED_ALPHABET[(ord($chs[0]) >> 2) & 0x3F];
-                    $base_idx++;
-                    $base_code[$base_idx] = static::OBFUSCATED_ALPHABET[(((ord($chs[0]) & 3) << 4) & 0x30) + ((ord($chs[1]) >> 4) & 0xF)];
-                    $base_idx++;
-                }
-                if ($i > 1) {
-                    $base_code[$base_idx] = static::OBFUSCATED_ALPHABET[(((ord($chs[1]) & 15) << 2) & 0x3C) + ((ord($chs[2]) >> 6) & 0x3)];
-                    $base_idx++;
-                }
-                if ($i > 2) {
-                    $base_code[$base_idx] = static::OBFUSCATED_ALPHABET[ord($chs[2]) & 0x3F];
-                    $base_idx++;
-                }
-                for ($j = $i; $j < 3; $j++) {
-                    $base_code[$base_idx] = '=';
-                    $base_idx++;
-                }
-            }
-            $base_code = substr($base_code,0,$base_idx);
-            $base_idx++;
-            return $base_code;
-        }
-
-        /**
-         * @param $source
-         * @param $len
-         * @param $offset
-         * @param $size
-         * @return string
-         */
-        private function substr_n($source,$len,$offset,$size)
-        {
-            $j = 0;
-            $i = $offset;
-            $sub_len = $size > 0 ? $size : $len - $offset;
-            $sub = str_pad("",$sub_len," ");
-            while ($i < $len) {
-                if ($i >= $offset) {
-                    @$sub[$j] = $source[$i];
-                    $j++;
-                    if ($size != 0 && $j == $size) {
-                        break;
-                    }
-                }
-                $i++;
-            }
-            return $sub;
-        }
-
-        /**
-         * @param $str
-         * @param $swaped
-         * @param $str_len
-         */
-        private function swap_by_order($str,&$swaped,$str_len)
-        {
-            $order_len = static::ORDER_SIZE;
-            $last_len = $str_len % $order_len;
-            $pre_str_len = $str_len - $last_len;
-            $last = $this->substr_n($str, $str_len, $pre_str_len,0);
-            $offset = 0;
-            if ($pre_str_len > 0) {
-
-                for ($i = 0; $i < $pre_str_len; $i++) {
-                    $pos = ($i - $i % $order_len) + static::OBFUSCATED_ORDER[$i % $order_len];
-                    @$swaped[$i] = $str[$pos % $pre_str_len];
-                }
-                $offset = $i;
-            }
-            if ($last_len > 0) {
-                $last_order = array();
-                $j = 0;
-                for ($i = 0; $i < $order_len; $i++) {
-                    if (static::OBFUSCATED_ORDER[$i] < $last_len) {
-                        $last_order[$j] = static::OBFUSCATED_ORDER[$i];
-                        $j++;
-                        if ($j == $last_len) {
-                            break;
-                        }
-                    }
-                }
-
-                for ($i = 0; $i < $last_len; $i++) {
-                    $pos = $last_order[$i % $last_len];
-                    $swaped[$i + $offset] = $last[$pos % $last_len];
-                }
-            }
-        }
-
-        /**
-         * @param $str
-         * @param $deswaped
-         * @param $str_len
-         */
-        private function deswap_by_order($str,&$deswaped,$str_len)
-        {
-            $order_len = static::ORDER_SIZE;
-            $pos = 0;
-            $last_len = $str_len % $order_len;
-            $pre_str_len = $str_len - $last_len;
-            $last = $this->substr_n($str, $str_len, $pre_str_len,0);
-            $offset = 0;
-            for ($i = 0; $i < static::ORDER_SIZE; $i++) {
-                $order_bytes[static::OBFUSCATED_ORDER[$i]] = $i;
-            }
-            if ($pre_str_len > 0) {
-                for ($i = 0; $i < $pre_str_len; $i++) {
-                    $pos = $i - $i % $order_len + $order_bytes[$i % $order_len ];
-                    $deswaped[$i] = $str[$pos];
-                }
-                $offset = $i;
-            }
-            if ($last_len > 0) {
-                $last_order = array();
-                $j = 0;
-                for ($i = 0; $i < $order_len; $i++) {
-                    if (static::OBFUSCATED_ORDER[$i] < $last_len) {
-                        $last_order[$j] = static::OBFUSCATED_ORDER[$i];
-                        $j++;
-                        if ($j == $last_len) {
-                            break;
-                        }
-                    }
-                }
-                $last_order_bytes = array();
-                for ($i = 0; $i < $last_len; $i++) {
-                    $last_order_bytes[$last_order[$i]] = $i;
-                }
-                for ($i = 0; $i < $last_len; $i++) {
-                    $pos = $last_order_bytes[$i];
-                    $deswaped[$offset + $i] = $last[$pos % $last_len];
-                }
-            }
-        }
+        
+        // Base64编码
+        return self::base64Encode($xCode);
     }
 
+    // 解密方法 
+    public static function decode($ciphertext) {
+        $keyLen = strlen(self::PRIVATE_KEY);
+        
+        // Base64解码
+        $code = self::base64Decode($ciphertext);
+        $codeLen = strlen($code);
+        
+        // 生成交换后的密钥
+        $swappedKey = self::swapByOrder(self::PRIVATE_KEY);
+        
+        // XOR解密
+        $decodedCode = '';
+        for($i = 0; $i < $codeLen; $i++) {
+            $keyIdx = $i % $keyLen;
+            $decodedCode .= chr(
+                ord($code[$i]) ^ ord(self::PRIVATE_KEY[$keyIdx]) ^ 
+                ord($swappedKey[$keyIdx])
+            );
+        }
+        
+        // 还原字符顺序
+        return self::deswapByOrder($decodedCode);
+    }
 
-    $php = '<?php echo 11; ?>';
-    $code_len = strlen($php);
-    $code = (new Zoeey())->encode($php,"123456789");
-    echo '加密后代码: |',$code,"|\n";
-    $code = (new Zoeey())->decode($code,"123456789");
-    echo '解密后代码: |',$code,"|\n";
+    // 字符重排序
+    private static function swapByOrder($str) {
+        $strLen = strlen($str);
+        $orderLen = count(self::OBFUSCATED_ORDER);
+        
+        $lastLen = $strLen % $orderLen;
+        $preStrLen = $strLen - $lastLen;
+        
+        $swapped = '';
+        
+        // 处理主要部分
+        if($preStrLen > 0) {
+            for($i = 0; $i < $preStrLen; $i++) {
+                $pos = ($i - ($i % $orderLen)) + self::OBFUSCATED_ORDER[$i % $orderLen];
+                $swapped .= $str[$pos % $preStrLen];
+            }
+        }
+        
+        // 处理剩余部分
+        if($lastLen > 0) {
+            $last = substr($str, $preStrLen);
+            $lastOrder = [];
+            
+            for($i = 0; $i < $orderLen && count($lastOrder) < $lastLen; $i++) {
+                if(self::OBFUSCATED_ORDER[$i] < $lastLen) {
+                    $lastOrder[] = self::OBFUSCATED_ORDER[$i];
+                }
+            }
+            
+            for($i = 0; $i < $lastLen; $i++) {
+                $pos = $lastOrder[$i % $lastLen];
+                $swapped .= $last[$pos % $lastLen];
+            }
+        }
+        
+        return $swapped;
+    }
+
+    // 还原字符顺序
+    private static function deswapByOrder($str) {
+        $strLen = strlen($str);
+        $orderLen = count(self::OBFUSCATED_ORDER);
+        
+        $lastLen = $strLen % $orderLen;
+        $preStrLen = $strLen - $lastLen;
+        
+        $deswapped = '';
+        
+        // 生成顺序映射
+        $orderBytes = array_fill(0, $orderLen, 0);
+        foreach(self::OBFUSCATED_ORDER as $i => $val) {
+            $orderBytes[$val] = $i;
+        }
+        
+        // 处理主要部分
+        if($preStrLen > 0) {
+            for($i = 0; $i < $preStrLen; $i++) {
+                $pos = $i - ($i % $orderLen) + $orderBytes[$i % $orderLen];
+                $deswapped .= $str[$pos];
+            }
+        }
+        
+        // 处理剩余部分
+        if($lastLen > 0) {
+            $last = substr($str, $preStrLen);
+            $lastOrder = [];
+            $lastOrderBytes = array_fill(0, $lastLen, 0);
+            
+            for($i = 0; $i < $orderLen && count($lastOrder) < $lastLen; $i++) {
+                if(self::OBFUSCATED_ORDER[$i] < $lastLen) {
+                    $lastOrder[] = self::OBFUSCATED_ORDER[$i];
+                }
+            }
+            
+            for($i = 0; $i < $lastLen; $i++) {
+                $lastOrderBytes[$lastOrder[$i]] = $i;
+            }
+            
+            for($i = 0; $i < $lastLen; $i++) {
+                $pos = $lastOrderBytes[$i];
+                $deswapped .= $last[$pos % $lastLen];
+            }
+        }
+        
+        return $deswapped;
+    }
+
+    // 自定义Base64编码
+    private static function base64Encode($data) {
+        $result = '';
+        $length = strlen($data);
+        $padding = $length % 3;
+        
+        for($i = 0; $i < $length; $i += 3) {
+            $chunk = substr($data, $i, 3);
+            $b = unpack('C*', $chunk);
+            
+            $b1 = ($b[1] ?? 0) >> 2;
+            $b2 = (($b[1] ?? 0) & 0x03) << 4 | (($b[2] ?? 0) >> 4);
+            $b3 = (($b[2] ?? 0) & 0x0F) << 2 | (($b[3] ?? 0) >> 6);
+            $b4 = ($b[3] ?? 0) & 0x3F;
+            
+            $result .= self::OBFUSCATED_ALPHABET[$b1];
+            $result .= self::OBFUSCATED_ALPHABET[$b2];
+            
+            if(isset($b[2])) {
+                $result .= self::OBFUSCATED_ALPHABET[$b3];
+            } else {
+                $result .= '=';
+            }
+            
+            if(isset($b[3])) {
+                $result .= self::OBFUSCATED_ALPHABET[$b4];
+            } else {
+                $result .= '=';
+            }
+        }
+        
+        return $result;
+    }
+
+    // 自定义Base64解码
+    private static function base64Decode($data) {
+        // 创建反查表
+        $revAlphabet = array_flip(self::OBFUSCATED_ALPHABET);
+        
+        // 移除padding
+        $data = rtrim($data, '=');
+        $length = strlen($data);
+        $result = '';
+        
+        for($i = 0; $i < $length; $i += 4) {
+            $b1 = $revAlphabet[$data[$i]];
+            $b2 = $revAlphabet[$data[$i + 1] ?? '='];
+            $b3 = isset($data[$i + 2]) ? $revAlphabet[$data[$i + 2]] : 0;
+            $b4 = isset($data[$i + 3]) ? $revAlphabet[$data[$i + 3]] : 0;
+            
+            $c1 = ($b1 << 2) | ($b2 >> 4);
+            $c2 = (($b2 & 0x0F) << 4) | ($b3 >> 2);
+            $c3 = (($b3 & 0x03) << 6) | $b4;
+            
+            $result .= chr($c1);
+            if($data[$i + 2] ?? '=' !== '=') {
+                $result .= chr($c2);
+            }
+            if($data[$i + 3] ?? '=' !== '=') {
+                $result .= chr($c3);
+            }
+        }
+        
+        return $result;
+    }
+}
+
+
+// 加密
+$encrypted = ZoeeyGuard::encode("test_string_original");
+echo $encrypted,PHP_EOL; // 输出加密后的字符串
+
+// 解密
+$decrypted = ZoeeyGuard::decode($encrypted);
+echo $decrypted,PHP_EOL; // 输出: test_string_original
